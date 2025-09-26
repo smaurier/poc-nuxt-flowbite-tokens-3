@@ -1,19 +1,25 @@
-import { createError, defineEventHandler } from 'h3'
+import { defineEventHandler } from 'h3'
+import { DEFAULT_TENANT, loadTokens } from '../utils/theme'
 
-export default defineEventHandler((event) => {
-  const tenant = event.context.tenant
+export default defineEventHandler(async (event) => {
+  const contextTenant = event.context.tenant
 
-  if (!tenant) {
-    throw createError({
-      statusCode: 500,
-      statusMessage: 'Impossible de déterminer le thème courant.'
-    })
+  if (contextTenant) {
+    return {
+      id: contextTenant.id,
+      theme: contextTenant.theme,
+      tokens: contextTenant.tokens,
+      darkEnabled: Boolean(contextTenant.tokens?.dark?.enabled)
+    }
   }
 
+  const fallbackTokens = await loadTokens(DEFAULT_TENANT)
+  const fallbackTheme = fallbackTokens.meta.defaultTheme === 'dark' ? 'dark' : 'light'
+
   return {
-    id: tenant.id,
-    theme: tenant.theme,
-    tokens: tenant.tokens,
-    darkEnabled: Boolean(tenant.tokens?.dark?.enabled)
+    id: DEFAULT_TENANT,
+    theme: fallbackTheme,
+    tokens: fallbackTokens,
+    darkEnabled: Boolean(fallbackTokens.dark?.enabled)
   }
 })
