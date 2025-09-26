@@ -1,5 +1,3 @@
-import tailwindcss from '@tailwindcss/vite'
-
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   srcDir: '.',
@@ -18,8 +16,16 @@ export default defineNuxtConfig({
       }
     ]
   },
+  hooks: {
+    'vite:extendConfig': async (config) => {
+      // Chargement dynamique : le paquet @tailwindcss/vite n'expose qu'une entrée ESM,
+      // ce qui casse l'import statique pendant le chargement CJS du nuxt.config.
+      const { default: tailwindcss } = await import('@tailwindcss/vite')
+      config.plugins = config.plugins || []
+      config.plugins.push(tailwindcss())
+    }
+  },
   vite: {
-    plugins: [tailwindcss()],
     ssr: {
       noExternal: ['flowbite-vue']
     }
