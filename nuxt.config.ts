@@ -1,3 +1,5 @@
+import tailwindcss from '@tailwindcss/vite'
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   srcDir: '.',
@@ -17,6 +19,7 @@ export default defineNuxtConfig({
     ]
   },
   vite: {
+    plugins: [tailwindcss()],
     ssr: {
       noExternal: ['flowbite-vue']
     }
