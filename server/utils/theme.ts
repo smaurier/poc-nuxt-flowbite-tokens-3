@@ -26,10 +26,8 @@ export interface TenantTokens {
 }
 
 export async function loadTokens(tenant: string): Promise<TenantTokens> {
-  const filePath = join(TOKENS_DIRECTORY, `${tenant}.json`)
-
   try {
-    const source = await readFile(filePath, 'utf8')
+    const source = await readTenantSource(tenant)
     const parsed = JSON.parse(source) as Record<string, unknown>
     return normalizeTokens(parsed)
   } catch (error) {
@@ -38,6 +36,30 @@ export async function loadTokens(tenant: string): Promise<TenantTokens> {
     }
 
     throw error
+  }
+}
+
+async function readTenantSource(tenant: string): Promise<string> {
+  const filePath = join(TOKENS_DIRECTORY, `${tenant}.json`)
+
+  try {
+    return await readFile(filePath, 'utf8')
+  } catch (filesystemError) {
+    const storage = typeof useStorage === 'function' ? useStorage<string>('assets:server') : null
+
+    if (storage) {
+      try {
+        const stored = await storage.getItem(`tokens/${tenant}.json`)
+
+        if (typeof stored === 'string') {
+          return stored
+        }
+      } catch {
+        // Ignore and fall back to throwing the filesystem error below.
+      }
+    }
+
+    throw filesystemError
   }
 }
 
