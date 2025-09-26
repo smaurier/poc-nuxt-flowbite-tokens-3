@@ -1,0 +1,8 @@
+{
+  "ssr": true,
+  "cache": "default",
+  "seo": {
+    "canonical": true,
+    "hreflang": true
+  }
+}

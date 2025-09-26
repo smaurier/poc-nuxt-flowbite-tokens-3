@@ -1,5 +1,5 @@
 import { defineEventHandler } from 'h3'
-import { DEFAULT_TENANT, loadTokens } from '../utils/theme'
+import { DEFAULT_TENANT, loadTokens, tokensToCssVars } from '../utils/theme'
 
 export default defineEventHandler(async (event) => {
   const contextTenant = event.context.tenant
@@ -9,6 +9,7 @@ export default defineEventHandler(async (event) => {
       id: contextTenant.id,
       theme: contextTenant.theme,
       tokens: contextTenant.tokens,
+      css: contextTenant.css ?? tokensToCssVars(contextTenant.tokens),
       darkEnabled: Boolean(contextTenant.tokens?.dark?.enabled)
     }
   }
@@ -20,6 +21,7 @@ export default defineEventHandler(async (event) => {
     id: DEFAULT_TENANT,
     theme: fallbackTheme,
     tokens: fallbackTokens,
+    css: tokensToCssVars(fallbackTokens),
     darkEnabled: Boolean(fallbackTokens.dark?.enabled)
   }
 })
