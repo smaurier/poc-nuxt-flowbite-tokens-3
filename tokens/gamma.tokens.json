@@ -1,0 +1,21 @@
+{
+  "meta": {
+    "label": "Gamma",
+    "defaultTheme": "light"
+  },
+  "light": {
+    "vars": {
+      "--color-background": "#f0fdf4",
+      "--color-foreground": "#064e3b",
+      "--accent-color": "#22c55e"
+    }
+  },
+  "dark": {
+    "enabled": true,
+    "vars": {
+      "--color-background": "#064e3b",
+      "--color-foreground": "#dcfce7",
+      "--accent-color": "#4ade80"
+    }
+  }
+}

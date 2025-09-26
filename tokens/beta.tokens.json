@@ -1,0 +1,21 @@
+{
+  "meta": {
+    "label": "Beta",
+    "defaultTheme": "dark"
+  },
+  "light": {
+    "vars": {
+      "--color-background": "#ede9fe",
+      "--color-foreground": "#1f2937",
+      "--accent-color": "#7c3aed"
+    }
+  },
+  "dark": {
+    "enabled": true,
+    "vars": {
+      "--color-background": "#1e1b4b",
+      "--color-foreground": "#ede9fe",
+      "--accent-color": "#a855f7"
+    }
+  }
+}
