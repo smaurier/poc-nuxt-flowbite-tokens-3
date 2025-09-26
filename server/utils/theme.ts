@@ -1,32 +1,65 @@
+import { useStorage } from '#imports'
+
 export const DEFAULT_TENANT = 'acme'
 export type ThemeMode = 'light' | 'dark'
 
 type RawTenantTokens = Record<string, unknown>
 
-const tokenModules = import.meta.glob('../../tokens/*.json', {
-  eager: true,
-  import: 'default'
-}) as Record<string, RawTenantTokens>
+let tokensByTenantPromise: Promise<Record<string, TenantTokens>> | null = null
 
-const TOKENS_BY_TENANT: Record<string, TenantTokens> = Object.fromEntries(
-  Object.entries(tokenModules)
-    .map(([path, module]) => {
-      const match = path.match(/\/tokens\/(.+)\.json$/)
+async function resolveTokensByTenant(): Promise<Record<string, TenantTokens>> {
+  if (tokensByTenantPromise) {
+    return tokensByTenantPromise
+  }
 
-      if (!match) {
-        return null
-      }
+  tokensByTenantPromise = loadTokensFromStorage().catch((error) => {
+    tokensByTenantPromise = null
+    throw error
+  })
 
-      const tenantId = match[1]
-      const normalized = normalizeTokens(module)
+  return tokensByTenantPromise
+}
 
-      return [tenantId, normalized] as const
-    })
-    .filter((entry): entry is readonly [string, TenantTokens] => Array.isArray(entry))
-)
+async function loadTokensFromStorage(): Promise<Record<string, TenantTokens>> {
+  const storage = useStorage('assets:tokens')
+  const keys = await storage.getKeys()
 
-if (!TOKENS_BY_TENANT[DEFAULT_TENANT]) {
-  throw new Error(`Missing tokens for default tenant "${DEFAULT_TENANT}"`)
+  const entries = await Promise.all(
+    keys
+      .filter((key) => key.endsWith('.json'))
+      .map(async (key) => {
+        const tenantId = key.replace(/\.json$/, '').split('/').pop()
+
+        if (!tenantId) {
+          return null
+        }
+
+        const rawModule = await storage.getItem<RawTenantTokens | string>(key)
+
+        if (!rawModule) {
+          return null
+        }
+
+        const source =
+          typeof rawModule === 'string'
+            ? (JSON.parse(rawModule) as RawTenantTokens)
+            : rawModule
+
+        const normalized = normalizeTokens(source)
+
+        return [tenantId, normalized] as const
+      })
+  )
+
+  const tokensByTenant = Object.fromEntries(
+    entries.filter((entry): entry is readonly [string, TenantTokens] => Array.isArray(entry))
+  )
+
+  if (!tokensByTenant[DEFAULT_TENANT]) {
+    throw new Error(`Missing tokens for default tenant "${DEFAULT_TENANT}"`)
+  }
+
+  return tokensByTenant
 }
 
 export interface ThemeVariant {
@@ -49,15 +82,16 @@ export interface TenantTokens {
 }
 
 export async function loadTokens(tenant: string): Promise<TenantTokens> {
+  const tokensByTenant = await resolveTokensByTenant()
   const normalizedTenant = tenant.toLowerCase()
-  const tokens = TOKENS_BY_TENANT[normalizedTenant]
+  const tokens = tokensByTenant[normalizedTenant]
 
   if (tokens) {
     return tokens
   }
 
-  if (normalizedTenant !== DEFAULT_TENANT && TOKENS_BY_TENANT[DEFAULT_TENANT]) {
-    return TOKENS_BY_TENANT[DEFAULT_TENANT]
+  if (normalizedTenant !== DEFAULT_TENANT && tokensByTenant[DEFAULT_TENANT]) {
+    return tokensByTenant[DEFAULT_TENANT]
   }
 
   throw new Error(`Unable to load tokens for tenant "${tenant}"`)
