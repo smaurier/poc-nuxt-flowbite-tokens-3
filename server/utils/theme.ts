@@ -1,6 +1,6 @@
+import { existsSync } from 'node:fs'
 import { readdir, readFile } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { join, resolve } from 'node:path'
 
 export const DEFAULT_TENANT = 'acme'
 export type ThemeMode = 'light' | 'dark'
@@ -9,7 +9,27 @@ type RawTenantTokens = Record<string, unknown>
 
 let tokensByTenantPromise: Promise<Record<string, TenantTokens>> | null = null
 
-const TOKENS_DIRECTORY = join(dirname(fileURLToPath(import.meta.url)), '../../assets/tokens')
+const TOKENS_DIRECTORY = resolveTokensDirectory()
+
+function resolveTokensDirectory(): string {
+  const candidates = [
+    resolve(process.cwd(), 'tokens'),
+    resolve(process.cwd(), 'assets/tokens'),
+    resolve(process.cwd(), '../tokens'),
+    resolve(process.cwd(), '../assets/tokens'),
+    resolve(process.cwd(), '../../tokens'),
+    resolve(process.cwd(), '../../assets/tokens')
+  ]
+
+  const match = candidates.find((candidate) => existsSync(candidate))
+
+  if (!match) {
+    const candidateList = candidates.join('", "')
+    throw new Error(`Unable to locate tokens directory. Checked: "${candidateList}"`)
+  }
+
+  return match
+}
 
 async function resolveTokensByTenant(): Promise<Record<string, TenantTokens>> {
   if (tokensByTenantPromise) {
