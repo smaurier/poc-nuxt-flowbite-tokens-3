@@ -1,0 +1,21 @@
+{
+  "meta": {
+    "defaultTheme": "light",
+    "label": "Acme"
+  },
+  "light": {
+    "vars": {
+      "--color-background": "#ffffff",
+      "--color-foreground": "#0f172a",
+      "--accent-color": "#2563eb"
+    }
+  },
+  "dark": {
+    "enabled": true,
+    "vars": {
+      "--color-background": "#0f172a",
+      "--color-foreground": "#f8fafc",
+      "--accent-color": "#60a5fa"
+    }
+  }
+}
