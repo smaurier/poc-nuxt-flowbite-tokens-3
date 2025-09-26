@@ -1,10 +1,33 @@
-import { readFile } from 'node:fs/promises'
-import { join } from 'node:path'
-
 export const DEFAULT_TENANT = 'acme'
 export type ThemeMode = 'light' | 'dark'
 
-const TOKENS_DIRECTORY = join(process.cwd(), 'server', 'tokens')
+type RawTenantTokens = Record<string, unknown>
+
+const tokenModules = import.meta.glob('../../tokens/*.json', {
+  eager: true,
+  import: 'default'
+}) as Record<string, RawTenantTokens>
+
+const TOKENS_BY_TENANT: Record<string, TenantTokens> = Object.fromEntries(
+  Object.entries(tokenModules)
+    .map(([path, module]) => {
+      const match = path.match(/\/tokens\/(.+)\.json$/)
+
+      if (!match) {
+        return null
+      }
+
+      const tenantId = match[1]
+      const normalized = normalizeTokens(module)
+
+      return [tenantId, normalized] as const
+    })
+    .filter((entry): entry is readonly [string, TenantTokens] => Array.isArray(entry))
+)
+
+if (!TOKENS_BY_TENANT[DEFAULT_TENANT]) {
+  throw new Error(`Missing tokens for default tenant "${DEFAULT_TENANT}"`)
+}
 
 export interface ThemeVariant {
   vars: Record<string, string>
@@ -26,41 +49,18 @@ export interface TenantTokens {
 }
 
 export async function loadTokens(tenant: string): Promise<TenantTokens> {
-  try {
-    const source = await readTenantSource(tenant)
-    const parsed = JSON.parse(source) as Record<string, unknown>
-    return normalizeTokens(parsed)
-  } catch (error) {
-    if (tenant !== DEFAULT_TENANT) {
-      return loadTokens(DEFAULT_TENANT)
-    }
+  const normalizedTenant = tenant.toLowerCase()
+  const tokens = TOKENS_BY_TENANT[normalizedTenant]
 
-    throw error
+  if (tokens) {
+    return tokens
   }
-}
 
-async function readTenantSource(tenant: string): Promise<string> {
-  const filePath = join(TOKENS_DIRECTORY, `${tenant}.json`)
-
-  try {
-    return await readFile(filePath, 'utf8')
-  } catch (filesystemError) {
-    const storage = typeof useStorage === 'function' ? useStorage<string>('assets:server') : null
-
-    if (storage) {
-      try {
-        const stored = await storage.getItem(`tokens/${tenant}.json`)
-
-        if (typeof stored === 'string') {
-          return stored
-        }
-      } catch {
-        // Ignore and fall back to throwing the filesystem error below.
-      }
-    }
-
-    throw filesystemError
+  if (normalizedTenant !== DEFAULT_TENANT && TOKENS_BY_TENANT[DEFAULT_TENANT]) {
+    return TOKENS_BY_TENANT[DEFAULT_TENANT]
   }
+
+  throw new Error(`Unable to load tokens for tenant "${tenant}"`)
 }
 
 export function tokensToCssVars(tokens: TenantTokens): string {
