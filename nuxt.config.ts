@@ -6,6 +6,14 @@ export default defineNuxtConfig({
   build: {
     transpile: ['flowbite-vue']
   },
+  nitro: {
+    serverAssets: [
+      {
+        baseName: 'tokens',
+        dir: 'server/tokens'
+      }
+    ]
+  },
   vite: {
     ssr: {
       noExternal: ['flowbite-vue']
