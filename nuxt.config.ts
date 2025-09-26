@@ -1,9 +1,10 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
+  srcDir: '.',
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
   ssr: true,
-  css: ['../assets/css/tailwind.css'],
+  css: ['~/assets/css/tailwind.css'],
   build: {
     transpile: ['flowbite-vue']
   },
@@ -11,7 +12,7 @@ export default defineNuxtConfig({
     serverAssets: [
       {
         baseName: 'tokens',
-        dir: 'server/tokens'
+        dir: 'tokens'
       }
     ]
   },

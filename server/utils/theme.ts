@@ -1,4 +1,6 @@
-import { useStorage } from '#imports'
+import { readdir, readFile } from 'node:fs/promises'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 export const DEFAULT_TENANT = 'acme'
 export type ThemeMode = 'light' | 'dark'
@@ -6,6 +8,8 @@ export type ThemeMode = 'light' | 'dark'
 type RawTenantTokens = Record<string, unknown>
 
 let tokensByTenantPromise: Promise<Record<string, TenantTokens>> | null = null
+
+const TOKENS_DIRECTORY = join(dirname(fileURLToPath(import.meta.url)), '../../assets/tokens')
 
 async function resolveTokensByTenant(): Promise<Record<string, TenantTokens>> {
   if (tokensByTenantPromise) {
@@ -21,33 +25,32 @@ async function resolveTokensByTenant(): Promise<Record<string, TenantTokens>> {
 }
 
 async function loadTokensFromStorage(): Promise<Record<string, TenantTokens>> {
-  const storage = useStorage('assets:tokens')
-  const keys = await storage.getKeys()
+  let files
+
+  try {
+    files = await readdir(TOKENS_DIRECTORY, { withFileTypes: true })
+  } catch (error) {
+    console.error(`Unable to access tokens directory at "${TOKENS_DIRECTORY}"`, error)
+    throw error
+  }
 
   const entries = await Promise.all(
-    keys
-      .filter((key) => key.endsWith('.json'))
-      .map(async (key) => {
-        const tenantId = key.replace(/\.json$/, '').split('/').pop()
+    files
+      .filter((entry) => entry.isFile() && entry.name.endsWith('.json'))
+      .map(async (entry) => {
+        const tenantId = entry.name.replace(/\.json$/, '')
+        const absolutePath = join(TOKENS_DIRECTORY, entry.name)
 
-        if (!tenantId) {
+        try {
+          const raw = await readFile(absolutePath, 'utf-8')
+          const source = JSON.parse(raw) as RawTenantTokens
+          const normalized = normalizeTokens(source)
+
+          return [tenantId, normalized] as const
+        } catch (error) {
+          console.error(`Failed to read tokens for tenant "${tenantId}":`, error)
           return null
         }
-
-        const rawModule = await storage.getItem<RawTenantTokens | string>(key)
-
-        if (!rawModule) {
-          return null
-        }
-
-        const source =
-          typeof rawModule === 'string'
-            ? (JSON.parse(rawModule) as RawTenantTokens)
-            : rawModule
-
-        const normalized = normalizeTokens(source)
-
-        return [tenantId, normalized] as const
       })
   )
 
