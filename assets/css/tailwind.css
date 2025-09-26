@@ -1,10 +1,13 @@
 @import "tailwindcss";
 @plugin "flowbite/plugin";
 
-@source "./components";
-@source "./pages";
-@source "./layouts";
-@source "./app.vue";
-@source "./error.vue";
-@source "../node_modules/flowbite";
-@source "../node_modules/flowbite-vue";
+@source "../../app.vue";
+@source "../../error.vue";
+@source "../../app";
+@source "../../components";
+@source "../../layouts";
+@source "../../pages";
+@source "../../plugins";
+@source "../../server";
+@source "../../node_modules/flowbite";
+@source "../../node_modules/flowbite-vue";
